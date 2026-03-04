@@ -234,9 +234,9 @@ export function getBlockers(account: Account): Person[] {
 }
 
 export function getGaps(account: Account): string[] {
-  const allFunctions = ['IT', 'Security', 'Procurement', 'Finance', 'Business'];
+  const allFunctions = ['IT', 'Security', 'Procurement', 'Finance', 'Business'] as const;
   const present = new Set(account.people.filter(p => !p.isOrangeEmployee).map(p => p.function));
-  return allFunctions.filter(f => !present.has(f));
+  return allFunctions.filter(f => !present.has(f as any));
 }
 
 export function getIntroPaths(account: Account, targetId: string): IntroPath[] {
