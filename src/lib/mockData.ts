@@ -194,15 +194,15 @@ export function computeAccountScores(account: Account) {
   });
 
   // Account KPIs
-  const allFunctions: Set<string> = new Set(['IT', 'Security', 'Procurement', 'Finance', 'Business']);
+  const allFunctions = ['IT', 'Security', 'Procurement', 'Finance', 'Business'] as const;
   const presentFunctions = new Set(nonOrange.map(p => p.function));
-  account.networkCoverage = Math.round((presentFunctions.size / allFunctions.size) * 100);
+  account.networkCoverage = Math.round((presentFunctions.size / allFunctions.length) * 100);
 
   const keyDeciders = nonOrange.filter(p => p.seniority === 'C-level' || p.seniority === 'VP');
   const avgAccess = keyDeciders.length > 0
     ? keyDeciders.reduce((s, p) => s + (p.accessScore || 0), 0) / keyDeciders.length
     : 0;
-  const missingFunctions = [...allFunctions].filter(f => !presentFunctions.has(f));
+  const missingFunctions = allFunctions.filter(f => !presentFunctions.has(f));
   account.politicalRisk = missingFunctions.length >= 2 || avgAccess < 30 ? 'high' : missingFunctions.length >= 1 || avgAccess < 50 ? 'medium' : 'low';
 
   account.globalScore = nonOrange.length > 0
