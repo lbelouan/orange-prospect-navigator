@@ -107,7 +107,7 @@ function StakeholderDrawer({ person, account, onClose }: { person: Person; accou
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed inset-y-0 right-0 w-[420px] bg-card border-l border-border/60 shadow-elevated z-50 overflow-y-auto"
+      className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-card border-l border-border/60 shadow-elevated z-50 overflow-y-auto"
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-5">
@@ -193,7 +193,7 @@ export default function AccountMapPage() {
   return (
     <div>
       {/* Account selector */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
         <div className="relative">
           <select
             value={account.company.id}
@@ -206,18 +206,18 @@ export default function AccountMapPage() {
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
         </div>
-        <h1 className="text-2xl font-extrabold">{account.company.name}</h1>
+        <h1 className="text-xl sm:text-2xl font-extrabold">{account.company.name}</h1>
         {account.politicalRisk && <RiskBadge risk={account.politicalRisk} />}
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Graph */}
-        <div className="flex-1 bg-card rounded-2xl border border-border/60 p-5 min-h-[520px] shadow-card">
+        <div className="flex-1 bg-card rounded-2xl border border-border/60 p-3 sm:p-5 min-h-[300px] sm:min-h-[520px] shadow-card">
           <NetworkGraph account={account} onSelectNode={setSelectedPerson} />
         </div>
 
         {/* Side panel */}
-        <div className="w-80 space-y-4 flex-shrink-0">
+        <div className="w-full lg:w-80 space-y-4 flex-shrink-0">
           {[
             { title: 'Top Stakeholders', icon: Sparkles, iconColor: 'text-primary', items: top, desc: null },
             ...(champions.length > 0 ? [{ title: 'Champions', icon: UserCheck, iconColor: 'text-success', items: champions.slice(0, 3), desc: 'Bon accès + haute influence' }] : []),
