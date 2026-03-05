@@ -57,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <img 
             src={logoOrange} 
             alt="Orange" 
-            className="w-10 h-10 rounded-xl object-cover flex-shrink-0 shadow-lg shadow-primary/20"
+            className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-lg shadow-primary/20"
           />
           <AnimatePresence>
             {(isMobile || sidebarOpen) && (
