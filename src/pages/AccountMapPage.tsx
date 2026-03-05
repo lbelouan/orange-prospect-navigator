@@ -107,7 +107,7 @@ function StakeholderDrawer({ person, account, onClose }: { person: Person; accou
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed inset-y-0 right-0 w-[420px] bg-card border-l border-border/60 shadow-elevated z-50 overflow-y-auto"
+      className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-card border-l border-border/60 shadow-elevated z-50 overflow-y-auto"
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-5">
