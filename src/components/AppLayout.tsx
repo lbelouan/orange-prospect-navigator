@@ -3,7 +3,7 @@ import { NavLink } from '@/components/NavLink';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
-import logoOrange from '@/assets/logo_orange.png';
+import logoOrange from '@/assets/logo_orange.webp';
 
 const navItems = [
   { to: '/', icon: Building2, label: 'Accounts' },
