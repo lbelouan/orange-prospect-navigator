@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import logoOrange from '@/assets/logo_orange.webp';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const navItems = [
   { to: '/', icon: Building2, label: 'Accounts' },
@@ -150,6 +151,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
           <div className="flex-1" />
           <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             <div className="h-8 w-px bg-border/50 hidden sm:block" />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full gradient-orange flex items-center justify-center shadow-md shadow-primary/20">
