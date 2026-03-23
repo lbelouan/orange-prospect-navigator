@@ -11,12 +11,6 @@ function NetworkGraph({ account, onSelectNode }: { account: Account; onSelectNod
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
-  // Zoom & pan state
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-
   const nodes = useMemo(() => account.people.filter(p => !p.isOrangeEmployee), [account]);
   const orangeNodes = useMemo(() => account.people.filter(p => p.isOrangeEmployee), [account]);
   const allNodes = useMemo(() => [...nodes, ...orangeNodes], [nodes, orangeNodes]);
@@ -53,278 +47,92 @@ function NetworkGraph({ account, onSelectNode }: { account: Account; onSelectNod
     return p.isOrangeEmployee ? 14 : 12 + (score / 100) * 12;
   };
 
-  // Zoom handlers
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale(s => Math.min(3, Math.max(0.3, s * delta)));
-  }, []);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    setIsPanning(true);
-    panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
-  }, [translate]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning) return;
-    setTranslate({
-      x: panStart.current.tx + (e.clientX - panStart.current.x),
-      y: panStart.current.ty + (e.clientY - panStart.current.y),
-    });
-  }, [isPanning]);
-
-  const handleMouseUp = useCallback(() => setIsPanning(false), []);
-
-  const resetView = useCallback(() => {
-    setScale(1);
-    setTranslate({ x: 0, y: 0 });
-  }, []);
-
-  // Touch support for mobile
-  const lastTouchDist = useRef<number | null>(null);
-  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastTouchDist.current = Math.sqrt(dx * dx + dy * dy);
-      lastTouchCenter.current = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      };
-    } else if (e.touches.length === 1) {
-      setIsPanning(true);
-      panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: translate.x, ty: translate.y };
-    }
-  }, [translate]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && lastTouchDist.current !== null) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const delta = dist / lastTouchDist.current;
-      setScale(s => Math.min(3, Math.max(0.3, s * delta)));
-      lastTouchDist.current = dist;
-    } else if (e.touches.length === 1 && isPanning) {
-      setTranslate({
-        x: panStart.current.tx + (e.touches[0].clientX - panStart.current.x),
-        y: panStart.current.ty + (e.touches[0].clientY - panStart.current.y),
-      });
-    }
-  }, [isPanning]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsPanning(false);
-    lastTouchDist.current = null;
-    lastTouchCenter.current = null;
-  }, []);
-
   return (
-    <div className="relative w-full h-full">
-      {/* Zoom controls */}
-      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
-        <button
-          onClick={() => setScale(s => Math.min(3, s * 1.2))}
-          className="w-8 h-8 rounded-lg bg-card/90 border border-border/60 flex items-center justify-center hover:bg-secondary transition-colors shadow-card"
-        >
-          <ZoomIn className="w-3.5 h-3.5 text-foreground" />
-        </button>
-        <button
-          onClick={() => setScale(s => Math.max(0.3, s * 0.8))}
-          className="w-8 h-8 rounded-lg bg-card/90 border border-border/60 flex items-center justify-center hover:bg-secondary transition-colors shadow-card"
-        >
-          <ZoomOut className="w-3.5 h-3.5 text-foreground" />
-        </button>
-        <button
-          onClick={resetView}
-          className="w-8 h-8 rounded-lg bg-card/90 border border-border/60 flex items-center justify-center hover:bg-secondary transition-colors shadow-card"
-        >
-          <Maximize2 className="w-3.5 h-3.5 text-foreground" />
-        </button>
-      </div>
+    <div ref={containerRef} className="w-full h-full">
+      <svg viewBox="0 0 700 500" className="w-full h-full">
+        {/* Edges */}
+        {account.edges.map(e => {
+          const s = positions[e.source];
+          const t = positions[e.target];
+          if (!s || !t) return null;
+          const isHighlighted = hoveredNode && (e.source === hoveredNode || e.target === hoveredNode);
+          return (
+            <line
+              key={e.id}
+              x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+              stroke={isHighlighted ? 'hsl(27, 100%, 50%)' : 'hsl(220, 13%, 65%)'}
+              strokeWidth={isHighlighted ? e.weight * 3 + 1 : e.weight * 2}
+              strokeOpacity={isHighlighted ? 0.7 : 0.2}
+              strokeLinecap="round"
+              style={{ transition: 'all 0.3s ease' }}
+            />
+          );
+        })}
 
-      {/* Scale indicator */}
-      <div className="absolute bottom-3 left-3 z-10 text-[10px] text-muted-foreground font-medium bg-card/80 px-2 py-1 rounded-md border border-border/40">
-        {Math.round(scale * 100)}%
-      </div>
+        {/* Nodes */}
+        {allNodes.map(p => {
+          const pos = positions[p.id];
+          if (!pos) return null;
+          const r = nodeRadius(p);
+          const isHovered = hoveredNode === p.id;
+          const isOrange = p.isOrangeEmployee;
+          const color = isOrange ? 'hsl(27, 100%, 50%)' : (functionColors[p.function] || '#6B7280');
 
-      <div
-        ref={containerRef}
-        className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <svg
-          viewBox="0 0 700 500"
-          className="w-full h-full"
-          style={{
-            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-            transformOrigin: 'center center',
-            transition: isPanning ? 'none' : 'transform 0.15s ease-out',
-          }}
-        >
-          <defs>
-            {/* Glow filter for Orange nodes */}
-            <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feFlood floodColor="hsl(27, 100%, 50%)" floodOpacity="0.4" result="color" />
-              <feComposite in="color" in2="blur" operator="in" result="shadow" />
-              <feMerge>
-                <feMergeNode in="shadow" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* Drop shadow for all nodes */}
-            <filter id="node-shadow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.25)" />
-            </filter>
-            {/* Hover shadow */}
-            <filter id="node-hover" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="rgba(0,0,0,0.35)" />
-            </filter>
-            {/* Radial gradients for each function color */}
-            {Object.entries(functionColors).map(([fn, color]) => (
-              <radialGradient key={fn} id={`grad-${fn}`} cx="35%" cy="35%" r="65%">
-                <stop offset="0%" stopColor="#fff" stopOpacity="0.35" />
-                <stop offset="50%" stopColor={color} stopOpacity="1" />
-                <stop offset="100%" stopColor={color} stopOpacity="0.85" />
-              </radialGradient>
-            ))}
-            <radialGradient id="grad-orange" cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#fff" stopOpacity="0.4" />
-              <stop offset="50%" stopColor="hsl(27, 100%, 50%)" stopOpacity="1" />
-              <stop offset="100%" stopColor="hsl(16, 100%, 42%)" stopOpacity="1" />
-            </radialGradient>
-            {/* Edge gradient */}
-            <linearGradient id="edge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(220, 10%, 60%)" stopOpacity="0.15" />
-              <stop offset="50%" stopColor="hsl(220, 10%, 60%)" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="hsl(220, 10%, 60%)" stopOpacity="0.15" />
-            </linearGradient>
-          </defs>
-
-          {/* Edges */}
-          {account.edges.map(e => {
-            const s = positions[e.source];
-            const t = positions[e.target];
-            if (!s || !t) return null;
-            const isHighlighted = hoveredNode && (e.source === hoveredNode || e.target === hoveredNode);
-            return (
-              <line
-                key={e.id}
-                x1={s.x} y1={s.y} x2={t.x} y2={t.y}
-                stroke={isHighlighted ? 'hsl(27, 100%, 50%)' : 'hsl(220, 13%, 65%)'}
-                strokeWidth={isHighlighted ? e.weight * 3 + 1 : e.weight * 2}
-                strokeOpacity={isHighlighted ? 0.7 : 0.2}
-                strokeLinecap="round"
-                style={{ transition: 'all 0.3s ease' }}
+          return (
+            <g
+              key={p.id}
+              onClick={() => onSelectNode(p)}
+              onMouseEnter={() => setHoveredNode(p.id)}
+              onMouseLeave={() => setHoveredNode(null)}
+              className="cursor-pointer"
+            >
+              <circle
+                cx={pos.x} cy={pos.y}
+                r={isHovered ? r + 2 : r}
+                fill={color}
+                opacity={isHovered ? 1 : 0.85}
+                style={{ transition: 'all 0.2s ease' }}
               />
-            );
-          })}
-
-          {/* Nodes */}
-          {allNodes.map(p => {
-            const pos = positions[p.id];
-            if (!pos) return null;
-            const r = nodeRadius(p);
-            const isHovered = hoveredNode === p.id;
-            const isOrange = p.isOrangeEmployee;
-            const gradId = isOrange ? 'url(#grad-orange)' : `url(#grad-${p.function})`;
-            const filterId = isHovered ? 'url(#node-hover)' : (isOrange ? 'url(#glow-orange)' : 'url(#node-shadow)');
-
-            return (
-              <g
-                key={p.id}
-                onClick={() => onSelectNode(p)}
-                onMouseEnter={() => setHoveredNode(p.id)}
-                onMouseLeave={() => setHoveredNode(null)}
-                className="cursor-pointer"
-                style={{ transition: 'transform 0.2s ease' }}
-              >
-                {/* Outer glow ring */}
-                <circle
-                  cx={pos.x} cy={pos.y}
-                  r={r + (isHovered ? 8 : 5)}
-                  fill={isOrange ? 'hsl(27, 100%, 50%)' : (functionColors[p.function] || '#6B7280')}
-                  opacity={isHovered ? 0.15 : 0.06}
-                  style={{ transition: 'all 0.3s ease' }}
-                />
-                {/* Main sphere with gradient */}
-                <circle
-                  cx={pos.x} cy={pos.y}
-                  r={isHovered ? r + 2 : r}
-                  fill={gradId}
-                  filter={filterId}
-                  style={{ transition: 'all 0.2s ease' }}
-                />
-                {/* Specular highlight for 3D effect */}
-                <ellipse
-                  cx={pos.x - r * 0.2}
-                  cy={pos.y - r * 0.25}
-                  rx={r * 0.35}
-                  ry={r * 0.25}
-                  fill="white"
-                  opacity={0.3}
-                  style={{ pointerEvents: 'none' }}
-                />
-                {/* Initials inside larger nodes */}
-                {r > 16 && (
-                  <text
-                    x={pos.x} y={pos.y + 1}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill="white"
-                    fontSize="9"
-                    fontWeight="700"
-                    style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-                  >
-                    {p.name.split(' ').map(n => n[0]).join('')}
-                  </text>
-                )}
-                {/* Name label */}
+              {r > 16 && (
                 <text
-                  x={pos.x} y={pos.y + r + 14}
+                  x={pos.x} y={pos.y + 1}
                   textAnchor="middle"
-                  className="text-[9px] font-semibold"
-                  style={{
-                    fill: isHovered ? 'hsl(27, 100%, 50%)' : 'hsl(var(--muted-foreground))',
-                    transition: 'fill 0.2s ease',
-                  }}
+                  dominantBaseline="central"
+                  fill="white"
+                  fontSize="9"
+                  fontWeight="700"
+                  style={{ pointerEvents: 'none' }}
                 >
-                  {p.name.split(' ')[1] || p.name.split(' ')[0]}
+                  {p.name.split(' ').map(n => n[0]).join('')}
                 </text>
-              </g>
-            );
-          })}
-
-          {/* Legend */}
-          {Object.entries(functionColors).map(([fn, color], i) => (
-            <g key={fn} transform={`translate(14, ${18 + i * 22})`}>
-              <defs>
-                <radialGradient id={`legend-${fn}`} cx="35%" cy="35%" r="65%">
-                  <stop offset="0%" stopColor="#fff" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={color} stopOpacity="1" />
-                </radialGradient>
-              </defs>
-              <circle cx={6} cy={0} r={6} fill={`url(#legend-${fn})`} />
-              <text x={18} y={4} className="text-[10px] font-medium" style={{ fill: 'hsl(var(--muted-foreground))' }}>{fn}</text>
+              )}
+              <text
+                x={pos.x} y={pos.y + r + 14}
+                textAnchor="middle"
+                className="text-[9px] font-semibold"
+                style={{
+                  fill: isHovered ? 'hsl(27, 100%, 50%)' : 'hsl(var(--muted-foreground))',
+                  transition: 'fill 0.2s ease',
+                }}
+              >
+                {p.name.split(' ')[1] || p.name.split(' ')[0]}
+              </text>
             </g>
-          ))}
-          <g transform={`translate(14, ${18 + Object.keys(functionColors).length * 22})`}>
-            <circle cx={6} cy={0} r={6} fill="url(#grad-orange)" />
-            <text x={18} y={4} className="text-[10px] font-medium" style={{ fill: 'hsl(var(--muted-foreground))' }}>Orange</text>
+          );
+        })}
+
+        {/* Legend */}
+        {Object.entries(functionColors).map(([fn, color], i) => (
+          <g key={fn} transform={`translate(14, ${18 + i * 22})`}>
+            <circle cx={6} cy={0} r={6} fill={color} />
+            <text x={18} y={4} className="text-[10px] font-medium" style={{ fill: 'hsl(var(--muted-foreground))' }}>{fn}</text>
           </g>
-        </svg>
-      </div>
+        ))}
+        <g transform={`translate(14, ${18 + Object.keys(functionColors).length * 22})`}>
+          <circle cx={6} cy={0} r={6} fill="hsl(27, 100%, 50%)" />
+          <text x={18} y={4} className="text-[10px] font-medium" style={{ fill: 'hsl(var(--muted-foreground))' }}>Orange</text>
+        </g>
+      </svg>
     </div>
   );
 }
