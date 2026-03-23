@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getTopStakeholders, getChampions, getBlockers, getGaps, functionColors, getIntroPaths } from '@/lib/mockData';
 import { Person, Account } from '@/lib/types';
 import { ScoreBar, ConfidenceBadge, FunctionBadge, StakeholderMiniCard, RiskBadge } from '@/components/ScoreWidgets';
-import { X, ArrowRight, Sparkles, AlertTriangle, UserCheck, ShieldAlert, Layers, ChevronDown, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { X, ArrowRight, Sparkles, AlertTriangle, UserCheck, ShieldAlert, Layers, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function NetworkGraph({ account, onSelectNode }: { account: Account; onSelectNode: (p: Person) => void }) {
